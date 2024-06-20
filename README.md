@@ -16,8 +16,8 @@ A web-based implementation of the popular 2048 game, built with [Next.js](https:
 Check out the live demo: [2048 Game](https://2048-pearl.vercel.app/)
 
 <picture>
-  <source media="(min-width: 650px)" srcset="screenshot-large.png">
-  <source media="(min-width: 465px)" srcset="screenshot-medium.png">
+  <source media="(min-width: 650px)" srcset="https://imgur.com/a/HmsiTLC">
+  <source media="(min-width: 465px)" srcset="https://imgur.com/a/HmsiTLC">
   <img src="https://imgur.com/a/HmsiTLC" alt="2048 Game Screenshot">
 </picture>
 
