@@ -16,7 +16,7 @@ A web-based implementation of the popular 2048 game, built with [Next.js](https:
 Check out the live demo: [2048 Game](https://2048-pearl.vercel.app/)
 
 <img src="https://imgur.com/5vDXVhS" width="35">
-[Imgur](https://imgur.com/5vDXVhS)
+![Imgur](https://imgur.com/5vDXVhS)
 
 ## Features
 
