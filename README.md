@@ -15,7 +15,9 @@ A web-based implementation of the popular 2048 game, built with [Next.js](https:
 
 Check out the live demo: [2048 Game](https://2048-pearl.vercel.app/)
 
-![2048 Game Screenshot](https://imgur.com/a/HmsiTLC)
+<picture>
+  <img src="https://imgur.com/a/HmsiTLC" alt="2048 Game Screenshot">
+</picture>
 
 ## Features
 
@@ -35,20 +37,23 @@ Check out the live demo: [2048 Game](https://2048-pearl.vercel.app/)
 To run this project locally, follow these steps:
 
 1. **Clone the repository:**
-    ```bash
-    git clone https://github.com/salimzeeshan/2048.git
-    cd 2048-game
-    ```
+
+   ```bash
+   git clone https://github.com/salimzeeshan/2048.git
+   cd 2048-game
+   ```
 
 2. **Install dependencies:**
-    ```bash
-    npm install
-    ```
+
+   ```bash
+   npm install
+   ```
 
 3. **Run the development server:**
-    ```bash
-    npm run dev
-    ```
+
+   ```bash
+   npm run dev
+   ```
 
 4. Open your browser and navigate to `http://localhost:3000`.
 
