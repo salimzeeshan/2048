@@ -1,30 +1,25 @@
 import numberToString from "@/constants/numberToString";
-import {
-  bottomToTop,
-  checkIfThereIsAValidMoveLeft,
-  isMoveValid,
-  leftToRight,
-  printMatrix,
-  rightToLeft,
-  topToBottom,
-} from "@/utils/manipulate-slate";
-import React, { useEffect, useState } from "react";
+import { checkIfThereIsAValidMoveLeft, isMoveValid } from "@/utils/manipulate-slate";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 
-const cleanSlate = [
-  [0, 0, 0, 0],
-  [0, 0, 0, 0],
-  [0, 0, 0, 0],
-  [0, 0, 0, 0],
-];
+const createCleanSlate = () => Array.from({ length: 4 }, () => Array(4).fill(0));
+
+const playMergeSound = () => {
+  const audio = new Audio("/audio/merge.mp3");
+  audio.play().catch(() => {});
+};
 
 const GameCard = () => {
-  const [slate, setSlate] = useState(cleanSlate);
+  const [slate, setSlate] = useState(() => createCleanSlate());
   const [isGameOver, setIsGameOver] = useState(false);
   const [currentScore, setCurrentScore] = useState(0);
+  const slateRef = useRef(slate);
+  const touchStartRef = useRef({ x: 0, y: 0 });
 
-  function startDefaultSlate(slate) {
-    const rows = slate.length;
-    const cols = slate[0].length;
+  const startDefaultSlate = useCallback(() => {
+    const nextSlate = createCleanSlate();
+    const rows = nextSlate.length;
+    const cols = nextSlate[0].length;
 
     function getRandomInt(min, max) {
       return Math.floor(Math.random() * (max - min + 1)) + min;
@@ -39,51 +34,54 @@ const GameCard = () => {
       col2 = getRandomInt(0, cols - 1);
     } while (row1 === row2 && col1 === col2);
 
-    slate[row1][col1] = 2;
-    slate[row2][col2] = 2;
+    nextSlate[row1][col1] = 2;
+    nextSlate[row2][col2] = 2;
 
-    console.log(slate);
-    setSlate([...slate]);
-  }
+    slateRef.current = nextSlate;
+    setSlate(nextSlate);
+  }, []);
 
   useEffect(() => {
+    slateRef.current = slate;
     setIsGameOver(checkIfThereIsAValidMoveLeft(slate));
   }, [slate]);
 
   useEffect(() => {
-    startDefaultSlate(cleanSlate);
+    startDefaultSlate();
+  }, [startDefaultSlate]);
+
+  const handleMove = useCallback((direction) => {
+    const { slate: nextSlate, score } = isMoveValid(slateRef.current, direction);
+
+    slateRef.current = nextSlate;
+    setSlate(nextSlate);
+
+    if (score > 0) {
+      setCurrentScore((prev) => prev + score);
+      playMergeSound();
+    }
   }, []);
 
   useEffect(() => {
     const handleKeyDown = (event) => {
-      let res;
       switch (event.key) {
         case "ArrowUp":
         case "w":
-          res = isMoveValid(slate, "up");
-          setCurrentScore((prev) => prev + +res.score);
-          setSlate([...res.slate]);
+          handleMove("up");
           break;
         case "ArrowDown":
         case "s":
-          res = isMoveValid(slate, "down");
-          setCurrentScore((prev) => prev + +res.score);
-          setSlate([...res.slate]);
+          handleMove("down");
           break;
         case "ArrowLeft":
         case "a":
-          res = isMoveValid(slate, "left");
-          setCurrentScore((prev) => prev + +res.score);
-          setSlate([...res.slate]);
+          handleMove("left");
           break;
         case "ArrowRight":
         case "d":
-          res = isMoveValid(slate, "right");
-          setCurrentScore((prev) => prev + +res.score);
-          setSlate([...res.slate]);
+          handleMove("right");
           break;
         default:
-          null;
           break;
       }
     };
@@ -93,42 +91,33 @@ const GameCard = () => {
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, []);
-
-  let startX = 0;
-  let startY = 0;
+  }, [handleMove]);
 
   const handleTouchStart = (e) => {
-    startX = e.touches[0].clientX;
-    startY = e.touches[0].clientY;
+    touchStartRef.current = {
+      x: e.touches[0].clientX,
+      y: e.touches[0].clientY,
+    };
   };
 
   const handleTouchEnd = (e) => {
     const endX = e.changedTouches[0].clientX;
     const endY = e.changedTouches[0].clientY;
 
-    const dx = endX - startX;
-    const dy = endY - startY;
+    const dx = endX - touchStartRef.current.x;
+    const dy = endY - touchStartRef.current.y;
 
     if (Math.abs(dx) > Math.abs(dy)) {
       if (dx > 0) {
-        const { slate: currentSlate, score } = isMoveValid(slate, "right");
-        setCurrentScore(currentScore + score);
-        setSlate([...currentSlate]);
+        handleMove("right");
       } else {
-        const { slate: currentSlate, score } = isMoveValid(slate, "left");
-        setCurrentScore(currentScore + score);
-        setSlate([...currentSlate]);
+        handleMove("left");
       }
     } else if (Math.abs(dx) < Math.abs(dy)) {
       if (dy > 0) {
-        const { slate: currentSlate, score } = isMoveValid(slate, "down");
-        setCurrentScore(currentScore + score);
-        setSlate([...currentSlate]);
+        handleMove("down");
       } else {
-        const { slate: currentSlate, score } = isMoveValid(slate, "up");
-        setCurrentScore(currentScore + score);
-        setSlate([...currentSlate]);
+        handleMove("up");
       }
     }
   };
@@ -141,12 +130,22 @@ const GameCard = () => {
     >
       <p className="score">Score: {currentScore}</p>
       <div className="game-grid">
-        {slate.map((row) => {
-          return row.map((col) => {
+        {slate.map((row, rowIndex) => {
+          return row.map((col, colIndex) => {
             if (col == 0)
-              return <div className={`game-item ${numberToString[col]}`}></div>;
+              return (
+                <div
+                  key={`${rowIndex}-${colIndex}`}
+                  className={`game-item ${numberToString[col]}`}
+                ></div>
+              );
             return (
-              <div className={`game-item ${numberToString[col]}`}>{col}</div>
+              <div
+                key={`${rowIndex}-${colIndex}`}
+                className={`game-item ${numberToString[col]}`}
+              >
+                {col}
+              </div>
             );
           });
         })}
@@ -156,7 +155,7 @@ const GameCard = () => {
           className="try-again"
           onClick={() => {
             setCurrentScore(0);
-            startDefaultSlate(cleanSlate);
+            startDefaultSlate();
             setIsGameOver(false);
           }}
         >

@@ -1,142 +1,95 @@
-export function leftToRight(slate, check, lastScore = 0) {
-  let flag = false;
-  let score = lastScore;
-  for (let i = 0; i < slate.length; i++) {
-    for (let j = 0; j < slate[i].length - 1; j++) {
-      if (slate[i][j] !== 0 && slate[i][j + 1] === 0) {
-        if (check) {
-          console.log("leftToRight");
-          return true;
-        }
+const cloneSlate = (slate) => slate.map((row) => [...row]);
 
-        [slate[i][j + 1], slate[i][j]] = [slate[i][j], slate[i][j + 1]];
-        flag = true;
-      }
+const areSlatesEqual = (firstSlate, secondSlate) => {
+  return firstSlate.every((row, rowIndex) => {
+    return row.every((cell, colIndex) => cell === secondSlate[rowIndex][colIndex]);
+  });
+};
 
-      if (slate[i][j] === slate[i][j + 1] && slate[i][j] !== 0) {
-        if (check) {
-          return true;
-        }
-        playSound("/audio/merge.mp3");
-        score += slate[i][j] + slate[i][j + 1];
-        slate[i][j + 1] = slate[i][j + 1] * 2;
-        slate[i][j] = 0;
-      }
+const getRandomTileValue = () => (Math.random() < 0.9 ? 2 : 4);
+
+const mergeLineLeft = (line) => {
+  const tiles = line.filter((tile) => tile !== 0);
+  const mergedLine = [];
+  let score = 0;
+
+  for (let i = 0; i < tiles.length; i++) {
+    if (tiles[i] === tiles[i + 1]) {
+      const mergedTile = tiles[i] * 2;
+      mergedLine.push(mergedTile);
+      score += mergedTile;
+      i++;
+    } else {
+      mergedLine.push(tiles[i]);
     }
   }
 
-  if (flag) {
-    leftToRight(slate, false, score);
-    return { slate: slate, score: score };
-  } else if (!check) {
-    printMatrix(slate);
-    return addTwoRandomly(slate);
+  while (mergedLine.length < line.length) {
+    mergedLine.push(0);
   }
+
+  return { line: mergedLine, score };
+};
+
+const moveSlate = (slate, direction) => {
+  const size = slate.length;
+  const nextSlate = cloneSlate(slate);
+  let score = 0;
+
+  if (direction === "left" || direction === "right") {
+    for (let rowIndex = 0; rowIndex < size; rowIndex++) {
+      const row =
+        direction === "left" ? nextSlate[rowIndex] : [...nextSlate[rowIndex]].reverse();
+      const result = mergeLineLeft(row);
+
+      nextSlate[rowIndex] =
+        direction === "left" ? result.line : result.line.reverse();
+      score += result.score;
+    }
+  }
+
+  if (direction === "up" || direction === "down") {
+    for (let colIndex = 0; colIndex < size; colIndex++) {
+      const column = [];
+
+      for (let rowIndex = 0; rowIndex < size; rowIndex++) {
+        column.push(nextSlate[rowIndex][colIndex]);
+      }
+
+      const line = direction === "up" ? column : column.reverse();
+      const result = mergeLineLeft(line);
+      const mergedColumn =
+        direction === "up" ? result.line : result.line.reverse();
+
+      for (let rowIndex = 0; rowIndex < size; rowIndex++) {
+        nextSlate[rowIndex][colIndex] = mergedColumn[rowIndex];
+      }
+
+      score += result.score;
+    }
+  }
+
+  return { slate: nextSlate, score, moved: !areSlatesEqual(slate, nextSlate) };
+};
+
+export function leftToRight(slate, check = false) {
+  const result = moveSlate(slate, "right");
+  return check ? result.moved : addTwoRandomly(result.slate, result.score);
 }
 
-export function rightToLeft(slate, check, lastScore = 0) {
-  let flag = false;
-  let score = lastScore;
-  for (let i = 0; i < slate.length; i++) {
-    for (let j = slate[i].length - 1; j > 0; j--) {
-      if (slate[i][j] !== 0 && slate[i][j - 1] === 0) {
-        if (check) {
-          return true;
-        }
-
-        [slate[i][j - 1], slate[i][j]] = [slate[i][j], slate[i][j - 1]];
-        flag = true;
-      }
-
-      if (slate[i][j] === slate[i][j - 1] && slate[i][j] !== 0) {
-        if (check) {
-          return true;
-        }
-        playSound("/audio/merge.mp3");
-        score += slate[i][j] + slate[i][j - 1];
-        slate[i][j - 1] = slate[i][j - 1] * 2;
-        slate[i][j] = 0;
-      }
-    }
-  }
-
-  if (flag) {
-    rightToLeft(slate, false, score);
-    return { slate: slate, score: score };
-  } else if (!check) {
-    printMatrix(slate);
-    return addTwoRandomly(slate);
-  }
+export function rightToLeft(slate, check = false) {
+  const result = moveSlate(slate, "left");
+  return check ? result.moved : addTwoRandomly(result.slate, result.score);
 }
 
-export function topToBottom(slate, check, lastScore = 0) {
-  let flag = false;
-  let score = lastScore;
-  for (let i = 0; i < slate.length; i++) {
-    for (let j = 0; j < slate.length - 1; j++) {
-      if (slate[j][i] !== 0 && slate[j + 1][i] === 0) {
-        if (check) {
-          return true;
-        }
-
-        [slate[j + 1][i], slate[j][i]] = [slate[j][i], slate[j + 1][i]];
-        flag = true;
-      }
-
-      if (slate[j][i] === slate[j + 1][i] && slate[j][i] !== 0) {
-        if (check) {
-          return true;
-        }
-        playSound("/audio/merge.mp3");
-        score += slate[j][i] + slate[j + 1][i];
-        slate[j + 1][i] = slate[j + 1][i] * 2;
-        slate[j][i] = 0;
-      }
-    }
-  }
-
-  if (flag) {
-    topToBottom(slate, false, score);
-    return { slate: slate, score: score };
-  } else if (!check) {
-    printMatrix(slate);
-    return addTwoRandomly(slate);
-  }
+export function topToBottom(slate, check = false) {
+  const result = moveSlate(slate, "down");
+  return check ? result.moved : addTwoRandomly(result.slate, result.score);
 }
 
-export function bottomToTop(slate, check, lastScore = 0) {
-  let flag = false;
-  let score = lastScore;
-  for (let i = 0; i < slate.length; i++) {
-    for (let j = slate.length - 1; j > 0; j--) {
-      if (slate[j][i] !== 0 && slate[j - 1][i] === 0) {
-        if (check) {
-          return true;
-        }
-
-        [slate[j - 1][i], slate[j][i]] = [slate[j][i], slate[j - 1][i]];
-        flag = true;
-      }
-
-      if (slate[j][i] === slate[j - 1][i] && slate[j][i] !== 0) {
-        if (check) {
-          return true;
-        }
-        playSound("/audio/merge.mp3");
-        score += slate[j][i] + slate[j - 1][i];
-        slate[j - 1][i] = slate[j - 1][i] * 2;
-        slate[j][i] = 0;
-      }
-    }
-  }
-
-  if (flag) {
-    bottomToTop(slate, false, score);
-    return { slate: slate, score: score };
-  } else if (!check) {
-    printMatrix(slate);
-    return addTwoRandomly(slate);
-  }
+export function bottomToTop(slate, check = false) {
+  const result = moveSlate(slate, "up");
+  return check ? result.moved : addTwoRandomly(result.slate, result.score);
 }
 
 export function printMatrix(slate) {
@@ -145,60 +98,42 @@ export function printMatrix(slate) {
   });
 }
 
-export function addTwoRandomly(slate) {
-  let emptyPositions = [];
-  for (let i = 0; i < slate.length; i++) {
-    for (let j = 0; j < slate[i].length; j++) {
-      if (slate[i][j] === 0) {
+export function addTwoRandomly(slate, score = 0) {
+  const nextSlate = cloneSlate(slate);
+  const emptyPositions = [];
+
+  for (let i = 0; i < nextSlate.length; i++) {
+    for (let j = 0; j < nextSlate[i].length; j++) {
+      if (nextSlate[i][j] === 0) {
         emptyPositions.push([i, j]);
       }
     }
   }
 
   if (emptyPositions.length === 0) {
-    return { slate: slate, score: 0 };
+    return { slate: nextSlate, score };
   }
 
-  let randomIndex = Math.floor(Math.random() * emptyPositions.length);
-  let [row, col] = emptyPositions[randomIndex];
+  const randomIndex = Math.floor(Math.random() * emptyPositions.length);
+  const [row, col] = emptyPositions[randomIndex];
 
-  slate[row][col] = 2;
+  nextSlate[row][col] = getRandomTileValue();
 
-  return { slate: slate, score: 0 };
+  return { slate: nextSlate, score };
 }
 
-const playSound = (src) => {
-  const audio = new Audio(src);
-  audio.play();
-};
-
 export function checkIfThereIsAValidMoveLeft(slate) {
-  if (
-    leftToRight(slate, true) ||
-    rightToLeft(slate, true) ||
-    topToBottom(slate, true) ||
-    bottomToTop(slate, true)
-  ) {
-    return false;
-  } else {
-    return true;
-  }
+  return !["left", "right", "up", "down"].some((direction) => {
+    return moveSlate(slate, direction).moved;
+  });
 }
 
 export function isMoveValid(slate, direction) {
-  if (direction == "left" && rightToLeft(slate, true)) {
-    console.log("isMoveValid ~ rightToLeft:", rightToLeft(slate, true));
-    return rightToLeft(slate);
-  } else if (direction == "right" && leftToRight(slate, true)) {
-    console.log("isMoveValid ~ leftToRight:", leftToRight(slate, true));
-    return leftToRight(slate);
-  } else if (direction == "up" && bottomToTop(slate, true)) {
-    console.log("isMoveValid ~ bottomToTop:", bottomToTop(slate, true));
-    return bottomToTop(slate);
-  } else if (direction == "down" && topToBottom(slate, true)) {
-    console.log("isMoveValid ~ topToBottom:", topToBottom(slate, true));
-    return topToBottom(slate);
-  } else {
-    return { slate: slate, score: 0 };
+  const result = moveSlate(slate, direction);
+
+  if (!result.moved) {
+    return { slate: cloneSlate(slate), score: 0 };
   }
+
+  return addTwoRandomly(result.slate, result.score);
 }
