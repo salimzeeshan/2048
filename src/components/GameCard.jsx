@@ -3,7 +3,8 @@ import { checkIfThereIsAValidMoveLeft } from "@/utils/manipulate-slate";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 
 const GRID_SIZE = 4;
-const SLIDE_DURATION_MS = 140;
+const SLIDE_DURATION_MS = 230;
+const BEST_SCORE_STORAGE_KEY = "2048-best-score";
 const createCleanSlate = () =>
   Array.from({ length: GRID_SIZE }, () => Array(GRID_SIZE).fill(0));
 
@@ -24,7 +25,7 @@ const createSlateFromTiles = (tiles) => {
 
 const getEmptyPositions = (tiles) => {
   const occupiedPositions = new Set(
-    tiles.map((tile) => `${tile.row}-${tile.col}`)
+    tiles.map((tile) => `${tile.row}-${tile.col}`),
   );
   const emptyPositions = [];
 
@@ -39,7 +40,8 @@ const getEmptyPositions = (tiles) => {
   return emptyPositions;
 };
 
-const getRandomItem = (items) => items[Math.floor(Math.random() * items.length)];
+const getRandomItem = (items) =>
+  items[Math.floor(Math.random() * items.length)];
 const getRandomTileValue = () => (Math.random() < 0.9 ? 2 : 4);
 
 const getLineCells = (direction, index) => {
@@ -156,6 +158,9 @@ const GameCard = () => {
   const [tiles, setTiles] = useState([]);
   const [isGameOver, setIsGameOver] = useState(false);
   const [currentScore, setCurrentScore] = useState(0);
+  const [bestScore, setBestScore] = useState(0);
+  const currentScoreRef = useRef(0);
+  const bestScoreRef = useRef(0);
   const slateRef = useRef(slate);
   const tilesRef = useRef(tiles);
   const touchStartRef = useRef({ x: 0, y: 0 });
@@ -201,57 +206,90 @@ const GameCard = () => {
     startDefaultSlate();
   }, [startDefaultSlate]);
 
-  const handleMove = useCallback((direction) => {
-    if (isAnimatingRef.current || isGameOver) {
-      return;
+  useEffect(() => {
+    const savedBestScore = Number(
+      window.localStorage.getItem(BEST_SCORE_STORAGE_KEY),
+    );
+
+    if (Number.isFinite(savedBestScore)) {
+      bestScoreRef.current = savedBestScore;
+      setBestScore(savedBestScore);
     }
+  }, []);
 
-    const result = moveTiles(tilesRef.current, direction);
+  const updateScore = useCallback((scoreToAdd) => {
+    const nextScore = currentScoreRef.current + scoreToAdd;
 
-    if (!result.moved) {
-      return;
+    currentScoreRef.current = nextScore;
+    setCurrentScore(nextScore);
+
+    if (nextScore > bestScoreRef.current) {
+      bestScoreRef.current = nextScore;
+      setBestScore(nextScore);
+      window.localStorage.setItem(BEST_SCORE_STORAGE_KEY, String(nextScore));
     }
+  }, []);
 
-    isAnimatingRef.current = true;
-    tilesRef.current = result.tiles;
-    setTiles(result.tiles);
+  const handleMove = useCallback(
+    (direction) => {
+      if (isAnimatingRef.current || isGameOver) {
+        return;
+      }
 
-    if (result.score > 0) {
-      setCurrentScore((prev) => prev + result.score);
-      playMergeSound();
-    }
+      const result = moveTiles(tilesRef.current, direction);
 
-    window.setTimeout(() => {
-      const mergedTiles = result.tiles
-        .filter((tile) => !tile.removeAfterMove)
-        .map((tile) => {
-          const value = tile.nextValue || tile.value;
+      if (!result.moved) {
+        return;
+      }
 
-          return {
-            id: tile.id,
-            value,
-            row: tile.row,
-            col: tile.col,
-            isNew: false,
-            isMerged: Boolean(tile.nextValue),
-          };
-        });
-      const emptyPositions = getEmptyPositions(mergedTiles);
-      const spawnPosition =
-        emptyPositions.length > 0 ? getRandomItem(emptyPositions) : null;
-      const spawnedTile = spawnPosition
-        ? createTile(spawnPosition.row, spawnPosition.col, getRandomTileValue())
-        : null;
-      const nextTiles = spawnedTile ? [...mergedTiles, spawnedTile] : mergedTiles;
-      const nextSlate = createSlateFromTiles(nextTiles);
+      isAnimatingRef.current = true;
+      tilesRef.current = result.tiles;
+      setTiles(result.tiles);
 
-      tilesRef.current = nextTiles;
-      slateRef.current = nextSlate;
-      setTiles(nextTiles);
-      setSlate(nextSlate);
-      isAnimatingRef.current = false;
-    }, SLIDE_DURATION_MS);
-  }, [createTile, isGameOver]);
+      if (result.score > 0) {
+        updateScore(result.score);
+        playMergeSound();
+      }
+
+      window.setTimeout(() => {
+        const mergedTiles = result.tiles
+          .filter((tile) => !tile.removeAfterMove)
+          .map((tile) => {
+            const value = tile.nextValue || tile.value;
+
+            return {
+              id: tile.id,
+              value,
+              row: tile.row,
+              col: tile.col,
+              isNew: false,
+              isMerged: Boolean(tile.nextValue),
+            };
+          });
+        const emptyPositions = getEmptyPositions(mergedTiles);
+        const spawnPosition =
+          emptyPositions.length > 0 ? getRandomItem(emptyPositions) : null;
+        const spawnedTile = spawnPosition
+          ? createTile(
+              spawnPosition.row,
+              spawnPosition.col,
+              getRandomTileValue(),
+            )
+          : null;
+        const nextTiles = spawnedTile
+          ? [...mergedTiles, spawnedTile]
+          : mergedTiles;
+        const nextSlate = createSlateFromTiles(nextTiles);
+
+        tilesRef.current = nextTiles;
+        slateRef.current = nextSlate;
+        setTiles(nextTiles);
+        setSlate(nextSlate);
+        isAnimatingRef.current = false;
+      }, SLIDE_DURATION_MS);
+    },
+    [createTile, isGameOver, updateScore],
+  );
 
   useEffect(() => {
     const handleKeyDown = (event) => {
@@ -319,7 +357,10 @@ const GameCard = () => {
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
     >
-      <p className="score">Score: {currentScore}</p>
+      <div className="score-container">
+        <p className="score">Score: <strong>{currentScore}</strong></p>
+        <p className="score">Best: <strong>{bestScore}</strong></p>
+      </div>
       <div className="game-grid">
         {Array.from({ length: GRID_SIZE * GRID_SIZE }, (_, index) => (
           <div key={index} className="grid-cell"></div>
@@ -338,7 +379,11 @@ const GameCard = () => {
                 )`,
               }}
             >
-              <div className={`game-item tile-face ${numberToString[tile.value]}`}>
+              <div
+                className={`game-item tile-face ${
+                  numberToString[tile.value] || "tile-super"
+                }`}
+              >
                 {tile.value}
               </div>
             </div>
@@ -349,6 +394,7 @@ const GameCard = () => {
         <p
           className="try-again"
           onClick={() => {
+            currentScoreRef.current = 0;
             setCurrentScore(0);
             startDefaultSlate();
             setIsGameOver(false);

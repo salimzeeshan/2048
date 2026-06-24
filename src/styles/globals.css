@@ -7,6 +7,24 @@
   font-style: normal;
 }
 
+:root {
+  --tile-empty: #1e293b;
+  --tile-2: #334155;
+  --tile-4: #475569;
+  --tile-8: #1e3a5f;
+  --tile-16: #1d4ed8;
+  --tile-32: #1e40af;
+  --tile-64: #312e81;
+  --tile-128: #4338ca;
+  --tile-256: #5b21b6;
+  --tile-512: #6b21a8;
+  --tile-1024: #86198f;
+  --tile-2048: #9d174d;
+  --tile-super: linear-gradient(135deg, #9d174d, #6b21a8, #312e81);
+  --text-light: #f8fafc;
+  --text-muted: #cbd5e1;
+}
+
 body {
   overflow: hidden;
 }
@@ -21,7 +39,14 @@ body {
   gap: 10px;
   align-items: center;
   justify-content: center;
-  background-color: #73E2A7;
+  background-color: #0f172a;
+  color: var(--text-light);
+}
+
+.score-container {
+  display: flex;
+  gap: 20px;
+  justify-content: space-between;
 }
 
 .score {
@@ -35,7 +60,7 @@ body {
   grid-template-columns: repeat(4, 1fr);
   gap: var(--tile-gap);
   padding: var(--tile-gap);
-  background-color: #1B512D;
+  background-color: #172033;
   border-radius: 20px;
   position: relative;
   touch-action: none;
@@ -49,8 +74,8 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #DEF4C6;
-  color: white;
+  background-color: var(--tile-empty);
+  color: var(--text-light);
   border-radius: 10px;
   transition: all 200ms ease-in-out;
   font-weight: 600;
@@ -58,6 +83,7 @@ body {
 
 .grid-cell {
   color: transparent;
+  background-color: rgb(255 255 255 / 35%);
   box-shadow: inset 0 0 8px rgb(0 0 0 / 12%);
 }
 
@@ -74,7 +100,7 @@ body {
   height: var(--tile-size);
   width: var(--tile-size);
   z-index: 1;
-  transition: transform 140ms ease-in-out;
+  transition: transform 230ms cubic-bezier(0.2, 1.18, 0.32, 1);
   transform-origin: center center;
   will-change: transform;
 }
@@ -86,22 +112,18 @@ body {
   box-shadow: rgba(60, 64, 67, 0.3) 0px 1px 2px 0px, rgba(60, 64, 67, 0.15) 0px 2px 6px 2px;
 }
 
-.tile-new {
-  transition: none;
-}
-
 .tile-new .tile-face {
-  animation: tile-pop 140ms ease-out;
+  animation: tile-pop 200ms ease-out;
 }
 
 .tile-merged .tile-face {
-  animation: tile-merge 160ms ease-out;
+  animation: tile-merge 180ms ease-out;
 }
 
 @keyframes tile-pop {
   from {
     opacity: 0;
-    scale: 0.4;
+    scale: 0.6;
   }
 
   to {
@@ -116,7 +138,7 @@ body {
   }
 
   50% {
-    scale: 1.05;
+    scale: 1.06;
   }
 
   100% {
@@ -126,58 +148,67 @@ body {
 
 
 .two {
-  background-color: #eee4da;
-  color: #776e65;
+  background-color: var(--tile-2);
+  color: var(--text-light);
 }
 
 .four {
-  background-color: #ede0c8;
-  color: #776e65;
+  background-color: var(--tile-4);
+  color: var(--text-light);
 }
 
 .eight {
-  background-color: #f2b179;
-  color: #f9f6f2;
+  background-color: var(--tile-8);
+  color: var(--text-light);
 }
 
 .sixteen {
-  background-color: #f59563;
-  color: #f9f6f2;
+  background-color: var(--tile-16);
+  color: var(--text-light);
 }
 
 .thirty-two {
-  background-color: #f67c5f;
-  color: #f9f6f2;
+  background-color: var(--tile-32);
+  color: var(--text-light);
 }
 
 .sixty-four {
-  background-color: #f65e3b;
-  color: #f9f6f2;
+  background-color: var(--tile-64);
+  color: var(--text-light);
 }
 
 .one-twenty-eight {
-  background-color: #edcf72;
-  color: #f9f6f2;
+  background-color: var(--tile-128);
+  color: var(--text-light);
 }
 
 .two-fifty-six {
-  background-color: #edcc61;
-  color: #f9f6f2;
+  background-color: var(--tile-256);
+  color: var(--text-light);
 }
 
 .five-twelve {
-  background-color: #edc850;
-  color: #f9f6f2;
+  background-color: var(--tile-512);
+  color: var(--text-light);
 }
 
 .ten-twenty-four {
-  background-color: #edc53f;
-  color: #f9f6f2;
+  background-color: var(--tile-1024);
+  color: var(--text-light);
 }
 
 .twenty-forty-eight {
-  background-color: #edc22e;
-  color: #f9f6f2;
+  background-color: var(--tile-2048);
+  color: var(--text-light);
+  box-shadow:
+    0 0 24px rgb(157 23 77 / 55%),
+    inset 0 1px 0 rgb(255 255 255 / 14%);
+}
+
+.tile-super {
+  background: var(--tile-super);
+  color: var(--text-light);
+  box-shadow: 0 0 28px rgb(107 33 168 / 60%);
 }
 
 @media (max-width: 480px) {
