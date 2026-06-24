@@ -1,77 +1,99 @@
-# 2048 Game
+# 2048
 
-A web-based implementation of the popular 2048 game, built with [Next.js](https://nextjs.org/).
+An animated, responsive 2048 game built with Next.js and React. Move tiles with the keyboard or touch, merge matching numbers, and keep pushing past 2048 while your best score is saved locally.
 
-## Table of Contents
+[Live Demo](https://2048-pearl.vercel.app/) · [Report Issue](https://github.com/salimzeeshan/2048/issues)
 
-- [Demo](#demo)
-- [Features](#features)
-- [Technologies](#technologies)
-- [Installation](#installation)
-- [Usage](#usage)
-- [Contributing](#contributing)
+![2048 game screenshot](public/audio/screenshot.png)
 
-## Demo
+## Highlights
 
-Check out the live demo: [2048 Game](https://2048-pearl.vercel.app/)
+- Smooth tile movement with merge and spawn animations
+- Keyboard controls with arrow keys and WASD
+- Swipe controls for mobile and touch devices
+- Persistent best score using local storage
+- Responsive board sizing for small and large screens
+- Dark tile theme with styled high-value tiles
+- Merge sound effect
 
-![Screnshot](https://media.discordapp.net/attachments/1232249762598621248/1365731267714224229/Screenshot_2025-04-26_at_10.18.19_PM.png?ex=680e5fdc&is=680d0e5c&hm=271daba8a75f2455450691c6cf6ddedb36291cb74ae8553af8ba6343162ad741&=&format=webp&quality=lossless&width=1328&height=1480)
+## Tech Stack
 
-## Features
+| Tool | Purpose |
+| --- | --- |
+| Next.js | React framework and app runtime |
+| React | UI state and rendering |
+| CSS | Layout, responsive styling, and animations |
 
-- Classic 2048 gameplay
-- Smooth animations and responsive design
-- Keyboard and swipe gestures support
-- Score tracking
+## Quick Start
 
-## Technologies
+```bash
+npm install
+npm run dev
+```
 
-- [Next.js](https://nextjs.org/)
-- [React](https://reactjs.org/)
-- [Vercel](https://vercel.com/) for deployment
+Open `http://localhost:3000`.
 
-## Installation
+If that port is already busy, Next.js will print the alternate local URL in your terminal.
 
-To run this project locally, follow these steps:
+## Controls
 
-1. **Clone the repository:**
+| Action | Input |
+| --- | --- |
+| Move up | `ArrowUp` or `W` |
+| Move down | `ArrowDown` or `S` |
+| Move left | `ArrowLeft` or `A` |
+| Move right | `ArrowRight` or `D` |
+| Mobile movement | Swipe |
 
-   ```bash
-   git clone https://github.com/salimzeeshan/2048.git
-   cd 2048-game
-   ```
+## Gameplay
 
-2. **Install dependencies:**
+All tiles move together in the selected direction. When two tiles with the same value collide, they merge into one tile with double the value. After every valid move, a new tile appears. Reach `2048`, then keep going for a higher score.
 
-   ```bash
-   npm install
-   ```
+## Scripts
 
-3. **Run the development server:**
+```bash
+npm run dev      # Start local development server
+npm run build    # Create production build
+npm run start    # Run production server
+npm run lint     # Run Next.js lint command
+```
 
-   ```bash
-   npm run dev
-   ```
+## Project Structure
 
-4. Open your browser and navigate to `http://localhost:3000`.
+```text
+src/
+  components/
+    GameCard.jsx             Game UI, input handling, score state, animations
+  constants/
+    numberToString.js        Tile value to CSS class mapping
+  pages/
+    index.js                 Home page
+    _app.js                  App wrapper
+    _document.js             Document shell
+  styles/
+    globals.css              Theme, layout, responsive board, animations
+  utils/
+    manipulate-slate.js      Board movement and validity helpers
 
-## Usage
+public/
+  audio/
+    merge.mp3                Merge sound effect
+    screenshot.png           README demo screenshot
+```
 
-- Use the arrow keys or WASD keys or arrow keys to move the tiles.
-- Combine tiles with the same number to merge them into a higher number.
-- Swipe gestures are supported on touch devices.
+## Build
 
-## Contributing
+```bash
+npm run build
+npm run start
+```
 
-Contributions are welcome! If you have suggestions for improvements or new features, please open an issue or submit a pull request.
+## Notes
 
-1. Fork the repository
-2. Create a new branch (`git checkout -b feature-branch`)
-3. Make your changes
-4. Commit your changes (`git commit -m 'Add some feature'`)
-5. Push to the branch (`git push origin feature-branch`)
-6. Open a pull request
+- Best score is stored in the browser with `localStorage`.
+- The game is client-side and does not require a backend.
+- The board logic and animation state are intentionally separated so the UI can animate tile movement while preserving correct 2048 rules.
 
 ---
 
-Developed by [Mohammad Zeeshan Salim](https://salimzeeshan.github.io/)
+Built by [Mohammad Zeeshan Salim](https://salimzeeshan.github.io/)
