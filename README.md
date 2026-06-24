@@ -4,7 +4,7 @@ An animated, responsive 2048 game built with Next.js and React. Move tiles with 
 
 [Live Demo](https://2048-pearl.vercel.app/) · [Report Issue](https://github.com/salimzeeshan/2048/issues)
 
-![2048 game screenshot](public/audio/screenshot.png)
+![2048 game screenshot](public/screenshot.png)
 
 ## Highlights
 
