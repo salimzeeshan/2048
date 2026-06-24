@@ -107,7 +107,9 @@ const moveTiles = (tiles, direction) => {
 
         movedTiles[mergeCandidate.resultIndex] = {
           ...movedTiles[mergeCandidate.resultIndex],
+          value: mergedValue,
           nextValue: mergedValue,
+          isMerged: true,
         };
         movedTiles.push({
           ...tile,
@@ -253,19 +255,17 @@ const GameCard = () => {
 
       window.setTimeout(() => {
         const mergedTiles = result.tiles
-          .filter((tile) => !tile.removeAfterMove)
-          .map((tile) => {
-            const value = tile.nextValue || tile.value;
-
-            return {
-              id: tile.id,
-              value,
-              row: tile.row,
-              col: tile.col,
-              isNew: false,
-              isMerged: Boolean(tile.nextValue),
-            };
-          });
+        .filter((tile) => !tile.removeAfterMove)
+        .map((tile) => {
+          return {
+            id: tile.id,
+            value: tile.value,
+            row: tile.row,
+            col: tile.col,
+            isNew: false,
+            isMerged: false,
+          };
+        });
         const emptyPositions = getEmptyPositions(mergedTiles);
         const spawnPosition =
           emptyPositions.length > 0 ? getRandomItem(emptyPositions) : null;
@@ -371,7 +371,7 @@ const GameCard = () => {
               key={tile.id}
               className={`tile ${tile.isNew ? "tile-new" : ""} ${
                 tile.isMerged ? "tile-merged" : ""
-              }`}
+              } ${tile.removeAfterMove ? "tile-removing" : ""}`}
               style={{
                 transform: `translate(
                   calc(${tile.col} * (var(--tile-size) + var(--tile-gap))),

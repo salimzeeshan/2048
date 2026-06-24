@@ -116,6 +116,14 @@ body {
   animation: tile-pop 200ms ease-out;
 }
 
+.tile-removing {
+  z-index: 1;
+}
+
+.tile-merged {
+  z-index: 2;
+}
+
 .tile-merged .tile-face {
   animation: tile-merge 180ms ease-out;
 }
