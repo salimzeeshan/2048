@@ -1,45 +1,196 @@
 import numberToString from "@/constants/numberToString";
-import { checkIfThereIsAValidMoveLeft, isMoveValid } from "@/utils/manipulate-slate";
+import { checkIfThereIsAValidMoveLeft } from "@/utils/manipulate-slate";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 
-const createCleanSlate = () => Array.from({ length: 4 }, () => Array(4).fill(0));
+const GRID_SIZE = 4;
+const SLIDE_DURATION_MS = 140;
+const createCleanSlate = () =>
+  Array.from({ length: GRID_SIZE }, () => Array(GRID_SIZE).fill(0));
 
 const playMergeSound = () => {
   const audio = new Audio("/audio/merge.mp3");
   audio.play().catch(() => {});
 };
 
+const createSlateFromTiles = (tiles) => {
+  const nextSlate = createCleanSlate();
+
+  tiles.forEach((tile) => {
+    nextSlate[tile.row][tile.col] = tile.value;
+  });
+
+  return nextSlate;
+};
+
+const getEmptyPositions = (tiles) => {
+  const occupiedPositions = new Set(
+    tiles.map((tile) => `${tile.row}-${tile.col}`)
+  );
+  const emptyPositions = [];
+
+  for (let row = 0; row < GRID_SIZE; row++) {
+    for (let col = 0; col < GRID_SIZE; col++) {
+      if (!occupiedPositions.has(`${row}-${col}`)) {
+        emptyPositions.push({ row, col });
+      }
+    }
+  }
+
+  return emptyPositions;
+};
+
+const getRandomItem = (items) => items[Math.floor(Math.random() * items.length)];
+const getRandomTileValue = () => (Math.random() < 0.9 ? 2 : 4);
+
+const getLineCells = (direction, index) => {
+  if (direction === "left") {
+    return Array.from({ length: GRID_SIZE }, (_, col) => ({ row: index, col }));
+  }
+
+  if (direction === "right") {
+    return Array.from({ length: GRID_SIZE }, (_, col) => ({
+      row: index,
+      col: GRID_SIZE - 1 - col,
+    }));
+  }
+
+  if (direction === "up") {
+    return Array.from({ length: GRID_SIZE }, (_, row) => ({ row, col: index }));
+  }
+
+  return Array.from({ length: GRID_SIZE }, (_, row) => ({
+    row: GRID_SIZE - 1 - row,
+    col: index,
+  }));
+};
+
+const isTileInLine = (tile, direction, index) => {
+  if (direction === "left" || direction === "right") {
+    return tile.row === index;
+  }
+
+  return tile.col === index;
+};
+
+const getTileLinePosition = (tile, direction) => {
+  if (direction === "left") return tile.col;
+  if (direction === "right") return GRID_SIZE - 1 - tile.col;
+  if (direction === "up") return tile.row;
+  return GRID_SIZE - 1 - tile.row;
+};
+
+const moveTiles = (tiles, direction) => {
+  const movedTiles = [];
+  let moved = false;
+  let score = 0;
+
+  for (let lineIndex = 0; lineIndex < GRID_SIZE; lineIndex++) {
+    const lineCells = getLineCells(direction, lineIndex);
+    const lineTiles = tiles
+      .filter((tile) => isTileInLine(tile, direction, lineIndex))
+      .sort((firstTile, secondTile) => {
+        return (
+          getTileLinePosition(firstTile, direction) -
+          getTileLinePosition(secondTile, direction)
+        );
+      });
+
+    let targetIndex = 0;
+    let mergeCandidate = null;
+
+    lineTiles.forEach((tile) => {
+      if (mergeCandidate && mergeCandidate.value === tile.value) {
+        const targetCell = lineCells[targetIndex];
+        const mergedValue = tile.value * 2;
+
+        movedTiles[mergeCandidate.resultIndex] = {
+          ...movedTiles[mergeCandidate.resultIndex],
+          nextValue: mergedValue,
+        };
+        movedTiles.push({
+          ...tile,
+          row: targetCell.row,
+          col: targetCell.col,
+          isNew: false,
+          isMerged: false,
+          removeAfterMove: true,
+        });
+
+        score += mergedValue;
+        moved = true;
+        mergeCandidate = null;
+        targetIndex++;
+        return;
+      }
+
+      if (mergeCandidate) {
+        targetIndex++;
+      }
+
+      const targetCell = lineCells[targetIndex];
+      const resultIndex = movedTiles.length;
+      const movedTile = {
+        ...tile,
+        row: targetCell.row,
+        col: targetCell.col,
+        isNew: false,
+        isMerged: false,
+        removeAfterMove: false,
+        nextValue: undefined,
+      };
+
+      if (tile.row !== targetCell.row || tile.col !== targetCell.col) {
+        moved = true;
+      }
+
+      movedTiles.push(movedTile);
+      mergeCandidate = { value: tile.value, resultIndex };
+    });
+  }
+
+  return { tiles: movedTiles, score, moved };
+};
+
 const GameCard = () => {
   const [slate, setSlate] = useState(() => createCleanSlate());
+  const [tiles, setTiles] = useState([]);
   const [isGameOver, setIsGameOver] = useState(false);
   const [currentScore, setCurrentScore] = useState(0);
   const slateRef = useRef(slate);
+  const tilesRef = useRef(tiles);
   const touchStartRef = useRef({ x: 0, y: 0 });
+  const tileIdRef = useRef(1);
+  const isAnimatingRef = useRef(false);
+
+  const createTile = useCallback((row, col, value, isNew = true) => {
+    const tile = {
+      id: tileIdRef.current,
+      value,
+      row,
+      col,
+      isNew,
+      isMerged: false,
+    };
+
+    tileIdRef.current++;
+    return tile;
+  }, []);
 
   const startDefaultSlate = useCallback(() => {
-    const nextSlate = createCleanSlate();
-    const rows = nextSlate.length;
-    const cols = nextSlate[0].length;
+    isAnimatingRef.current = false;
 
-    function getRandomInt(min, max) {
-      return Math.floor(Math.random() * (max - min + 1)) + min;
-    }
+    const firstPosition = getRandomItem(getEmptyPositions([]));
+    const firstTile = createTile(firstPosition.row, firstPosition.col, 2);
+    const secondPosition = getRandomItem(getEmptyPositions([firstTile]));
+    const secondTile = createTile(secondPosition.row, secondPosition.col, 2);
+    const nextTiles = [firstTile, secondTile];
+    const nextSlate = createSlateFromTiles(nextTiles);
 
-    let row1 = getRandomInt(0, rows - 1);
-    let col1 = getRandomInt(0, cols - 1);
-
-    let row2, col2;
-    do {
-      row2 = getRandomInt(0, rows - 1);
-      col2 = getRandomInt(0, cols - 1);
-    } while (row1 === row2 && col1 === col2);
-
-    nextSlate[row1][col1] = 2;
-    nextSlate[row2][col2] = 2;
-
+    tilesRef.current = nextTiles;
     slateRef.current = nextSlate;
+    setTiles(nextTiles);
     setSlate(nextSlate);
-  }, []);
+  }, [createTile]);
 
   useEffect(() => {
     slateRef.current = slate;
@@ -51,16 +202,56 @@ const GameCard = () => {
   }, [startDefaultSlate]);
 
   const handleMove = useCallback((direction) => {
-    const { slate: nextSlate, score } = isMoveValid(slateRef.current, direction);
+    if (isAnimatingRef.current || isGameOver) {
+      return;
+    }
 
-    slateRef.current = nextSlate;
-    setSlate(nextSlate);
+    const result = moveTiles(tilesRef.current, direction);
 
-    if (score > 0) {
-      setCurrentScore((prev) => prev + score);
+    if (!result.moved) {
+      return;
+    }
+
+    isAnimatingRef.current = true;
+    tilesRef.current = result.tiles;
+    setTiles(result.tiles);
+
+    if (result.score > 0) {
+      setCurrentScore((prev) => prev + result.score);
       playMergeSound();
     }
-  }, []);
+
+    window.setTimeout(() => {
+      const mergedTiles = result.tiles
+        .filter((tile) => !tile.removeAfterMove)
+        .map((tile) => {
+          const value = tile.nextValue || tile.value;
+
+          return {
+            id: tile.id,
+            value,
+            row: tile.row,
+            col: tile.col,
+            isNew: false,
+            isMerged: Boolean(tile.nextValue),
+          };
+        });
+      const emptyPositions = getEmptyPositions(mergedTiles);
+      const spawnPosition =
+        emptyPositions.length > 0 ? getRandomItem(emptyPositions) : null;
+      const spawnedTile = spawnPosition
+        ? createTile(spawnPosition.row, spawnPosition.col, getRandomTileValue())
+        : null;
+      const nextTiles = spawnedTile ? [...mergedTiles, spawnedTile] : mergedTiles;
+      const nextSlate = createSlateFromTiles(nextTiles);
+
+      tilesRef.current = nextTiles;
+      slateRef.current = nextSlate;
+      setTiles(nextTiles);
+      setSlate(nextSlate);
+      isAnimatingRef.current = false;
+    }, SLIDE_DURATION_MS);
+  }, [createTile, isGameOver]);
 
   useEffect(() => {
     const handleKeyDown = (event) => {
@@ -130,25 +321,29 @@ const GameCard = () => {
     >
       <p className="score">Score: {currentScore}</p>
       <div className="game-grid">
-        {slate.map((row, rowIndex) => {
-          return row.map((col, colIndex) => {
-            if (col == 0)
-              return (
-                <div
-                  key={`${rowIndex}-${colIndex}`}
-                  className={`game-item ${numberToString[col]}`}
-                ></div>
-              );
-            return (
-              <div
-                key={`${rowIndex}-${colIndex}`}
-                className={`game-item ${numberToString[col]}`}
-              >
-                {col}
+        {Array.from({ length: GRID_SIZE * GRID_SIZE }, (_, index) => (
+          <div key={index} className="grid-cell"></div>
+        ))}
+        <div className="tile-layer">
+          {tiles.map((tile) => (
+            <div
+              key={tile.id}
+              className={`tile ${tile.isNew ? "tile-new" : ""} ${
+                tile.isMerged ? "tile-merged" : ""
+              }`}
+              style={{
+                transform: `translate(
+                  calc(${tile.col} * (var(--tile-size) + var(--tile-gap))),
+                  calc(${tile.row} * (var(--tile-size) + var(--tile-gap)))
+                )`,
+              }}
+            >
+              <div className={`game-item tile-face ${numberToString[tile.value]}`}>
+                {tile.value}
               </div>
-            );
-          });
-        })}
+            </div>
+          ))}
+        </div>
       </div>
       {isGameOver ? (
         <p
